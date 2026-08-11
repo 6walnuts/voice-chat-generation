@@ -1,0 +1,5 @@
+# 个人录音数据不入库（这是你的声音资产，请自行备份）
+dataset/
+out.wav
+*.pyc
+__pycache__/

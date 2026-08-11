@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中文语音数据采集</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🎙️ 中文语音数据采集</h1>
+    <p class="sub">逐句朗读下面的文字，录满一批就可以训练你自己的语音模型</p>
+    <div class="chips">
+      <span class="chip" id="status-progress">进度 0 / 0</span>
+      <span class="chip" id="status-duration">已录 0 分 0 秒</span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main class="card">
+    <div class="meta-row">
+      <span class="sid" id="sentence-id">—</span>
+      <span class="done-mark" id="done-mark" hidden>✓ 已录</span>
+    </div>
+    <p class="tip" id="batch-tip"></p>
+    <p class="sentence" id="sentence-text">加载中……</p>
+
+    <div class="warn" id="warn-area" hidden></div>
+
+    <div class="controls">
+      <button class="btn-record" id="btn-record">● 开始录音</button>
+      <span class="timer" id="timer">0.0s</span>
+      <div class="level-track"><div class="level-bar" id="level-bar"></div></div>
+    </div>
+
+    <div class="preview" id="preview-area" hidden>
+      <audio id="preview-audio" controls></audio>
+      <div class="preview-btns">
+        <button class="btn-save" id="btn-save">✔ 保存并下一句</button>
+        <button class="btn-ghost" id="btn-discard">↺ 重录</button>
+      </div>
+    </div>
+
+    <div class="existing" id="existing-area" hidden>
+      <span>已有录音：</span>
+      <audio id="existing-audio" controls></audio>
+    </div>
+
+    <div class="nav-btns">
+      <button class="btn-ghost" id="btn-prev">← 上一句</button>
+      <button class="btn-ghost" id="btn-next">下一句 →</button>
+    </div>
+  </main>
+
+  <footer>
+    <div class="device-row">
+      <label for="device-select">麦克风：</label>
+      <select id="device-select"><option value="">默认设备</option></select>
+    </div>
+    <p class="hint">快捷键：<b>空格</b> 开始/停止录音 · <b>回车</b> 保存并下一句 · <b>R</b> 重录 · <b>←/→</b> 切换句子</p>
+    <p class="hint">建议：安静的房间，嘴离麦克风约一拳远，念错就重录；读法自然即可，不必播音腔。</p>
+  </footer>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
