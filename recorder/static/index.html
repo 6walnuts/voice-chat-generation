@@ -11,16 +11,17 @@
 <div class="wrap">
   <header>
     <h1>🎙️ 中文语音数据采集</h1>
-    <p class="sub">逐句朗读下面的文字，录满一批就可以训练你自己的语音模型</p>
+    <p class="sub">照稿朗读保发音覆盖，自由说话保自然语气——两种都录，效果最好</p>
     <div class="chips">
       <span class="chip" id="status-progress">进度 0 / 0</span>
       <span class="chip" id="status-duration">已录 0 分 0 秒</span>
+      <span class="chip chip-warn" id="status-pending" hidden>待校对 0 段</span>
     </div>
   </header>
 
   <nav class="tabs" id="tabs"></nav>
 
-  <main class="card">
+  <main class="card" id="read-card">
     <div class="meta-row">
       <span class="sid" id="sentence-id">—</span>
       <span class="done-mark" id="done-mark" hidden>✓ 已录</span>
@@ -55,13 +56,45 @@
     </div>
   </main>
 
+  <main class="card" id="free-card" hidden>
+    <div class="meta-row"><span class="sid">自由说话 · 自然语气采集</span></div>
+    <p class="tip">不看稿子，像平时聊天一样随便说 1~5 分钟：今天做了什么、推荐一部电影、
+      给朋友的语音留言……停顿换气都没关系。停止后点上传，系统会按停顿自动切成小段，
+      再逐段听着写下你实际说的字。</p>
+
+    <div class="controls">
+      <button class="btn-record" id="free-record">● 开始说话</button>
+      <span class="timer" id="free-timer">0.0s</span>
+      <div class="level-track"><div class="level-bar" id="free-level"></div></div>
+    </div>
+
+    <div class="warn" id="free-warn" hidden></div>
+
+    <div class="preview" id="free-preview" hidden>
+      <audio id="free-audio" controls></audio>
+      <div class="preview-btns">
+        <button class="btn-save" id="free-upload">⬆ 上传并按停顿切分</button>
+        <button class="btn-ghost" id="free-redo">↺ 重录</button>
+      </div>
+    </div>
+
+    <section id="pending-section" hidden>
+      <h2 class="pending-title">待校对（听音频 → 写下你实际说的字 → 确认）</h2>
+      <p class="tip">写「说出来的字」：数字按读法写汉字（如「二零二六」），
+        语气词（嗯、呃、啊）说了就写上；说废了的段直接丢弃。
+        想让识别先帮你打草稿：<code>pip install faster-whisper</code> 后运行
+        <code>python3 scripts/transcribe_pending.py</code>，再刷新本页。</p>
+      <div id="pending-list"></div>
+    </section>
+  </main>
+
   <footer>
     <div class="device-row">
       <label for="device-select">麦克风：</label>
       <select id="device-select"><option value="">默认设备</option></select>
     </div>
-    <p class="hint">快捷键：<b>空格</b> 开始/停止录音 · <b>回车</b> 保存并下一句 · <b>R</b> 重录 · <b>←/→</b> 切换句子</p>
-    <p class="hint">建议：安静的房间，嘴离麦克风约一拳远，念错就重录；读法自然即可，不必播音腔。</p>
+    <p class="hint">快捷键（朗读模式）：<b>空格</b> 开始/停止录音 · <b>回车</b> 保存并下一句 · <b>R</b> 重录 · <b>←/→</b> 切换句子</p>
+    <p class="hint">建议：安静的房间，嘴离麦克风约一拳远；朗读批念错就重录，自由说话批想到什么说什么。</p>
   </footer>
 </div>
 <script src="/app.js"></script>

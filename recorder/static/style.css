@@ -85,3 +85,25 @@ footer { margin-top: 18px; text-align: center; }
 }
 .hint { color: #8a94a6; font-size: 12.5px; }
 .hint b { color: #475569; }
+
+/* ---- 自由说话 / 校对 ---- */
+.chip-warn { border-color: #f4c162; background: #fff8e8; color: #92600a; }
+.tab-free { border-style: dashed; }
+#free-card .tip { margin: 8px 0 14px; }
+.pending-title { font-size: 16px; margin: 22px 0 4px; color: #1e2530; }
+.pending-item {
+  border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px; margin-top: 12px; background: #fafcff;
+}
+.pending-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.pending-dur { color: #94a3b8; font-size: 12.5px; }
+.pending-item audio { width: 100%; }
+.pending-item textarea {
+  width: 100%; margin-top: 8px; padding: 8px 10px; font-size: 16px;
+  font-family: inherit; line-height: 1.6;
+  border: 1px solid #cbd5e1; border-radius: 8px; resize: vertical;
+}
+.pending-item .preview-btns { margin-top: 8px; }
+#pending-section code {
+  background: #eef2f7; padding: 1px 6px; border-radius: 5px; font-size: 12px;
+}

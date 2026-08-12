@@ -1,40 +1,49 @@
-/* 中文语音数据采集 —— 纯浏览器录音，原始 PCM 直接编码 WAV（不经过有损压缩）。 */
+/* 中文语音数据采集 —— 纯浏览器录音，原始 PCM 直接编码 WAV（不经过有损压缩）。
+   两种模式：照稿朗读（read）/ 自由说话（free，录长段→上传切分→逐段校对）。 */
 'use strict';
 
 const $ = id => document.getElementById(id);
 
 const state = {
+  mode: 'read',       // 'read' | 'free'
   batches: [],        // [{id,name,tip,items:[{id,text}]}]
   flat: [],           // 全部句子按顺序展开
   index: 0,           // 当前句子在 flat 中的下标
   recorded: {},       // id -> meta（服务器返回）
   totalSec: 0,
+  pendingSegs: [],    // 自由说话待校对段
   recording: false,
-  pending: null,      // {blob,dur,peak,sr} 待保存的录音
+  pending: null,      // 朗读模式：{blob,dur,peak,sr} 待保存
+  freeTake: null,     // 自由模式：{blob,dur,peak,sr} 待上传
   saving: false,
-  // 录音期资源
+  // 录音期资源（两种模式共用同一引擎）
   ctx: null, stream: null, source: null, processor: null,
   chunks: [], sampleRate: 48000, startTime: 0, timerId: null, peak: 0,
 };
+
+const FREE_MAX_SEC = 300; // 自由说话单次上限 5 分钟
 
 /* ---------------- 初始化 ---------------- */
 
 async function init() {
   try {
-    const [corpus, progress] = await Promise.all([
+    const [corpus, progress, pending] = await Promise.all([
       fetch('/api/sentences').then(r => r.json()),
       fetch('/api/progress').then(r => r.json()),
+      fetch('/api/pending').then(r => r.json()),
     ]);
     state.batches = corpus.batches;
     state.flat = corpus.batches.flatMap(b =>
       b.items.map(it => ({ ...it, batch: b.id, batchName: b.name, tip: b.tip })));
     state.recorded = progress.recorded || {};
     state.totalSec = progress.total_sec || 0;
+    state.pendingSegs = pending.pending || [];
 
     const firstNew = state.flat.findIndex(s => !state.recorded[s.id]);
     state.index = firstNew === -1 ? 0 : firstNew;
     renderTabs();
     renderSentence();
+    renderPending();
     renderStatus();
   } catch (e) {
     $('sentence-text').textContent = '加载语料失败：' + e.message +
@@ -51,14 +60,31 @@ function renderTabs() {
   for (const b of state.batches) {
     const done = b.items.filter(it => state.recorded[it.id]).length;
     const el = document.createElement('button');
-    el.className = 'tab' + (cur && cur.batch === b.id ? ' active' : '');
+    el.className = 'tab' + (state.mode === 'read' && cur && cur.batch === b.id ? ' active' : '');
     el.innerHTML = `${b.id}·${b.name}<span class="cnt">${done}/${b.items.length}</span>`;
     el.onclick = () => {
+      setMode('read');
       const idx = state.flat.findIndex(s => s.batch === b.id && !state.recorded[s.id]);
       goTo(idx !== -1 ? idx : state.flat.findIndex(s => s.batch === b.id));
     };
     tabs.appendChild(el);
   }
+  const freeDone = Object.keys(state.recorded).filter(id => /^S\d+$/.test(id)).length;
+  const el = document.createElement('button');
+  el.className = 'tab tab-free' + (state.mode === 'free' ? ' active' : '');
+  el.innerHTML = `🗣 自由说话<span class="cnt">${freeDone}段` +
+    (state.pendingSegs.length ? `+${state.pendingSegs.length}待校` : '') + '</span>';
+  el.onclick = () => setMode('free');
+  tabs.appendChild(el);
+}
+
+function setMode(mode) {
+  if (state.mode === mode) { renderTabs(); return; }
+  if (state.recording) stopRecording();
+  state.mode = mode;
+  $('read-card').hidden = mode !== 'read';
+  $('free-card').hidden = mode !== 'free';
+  renderTabs();
 }
 
 function renderSentence() {
@@ -78,19 +104,47 @@ function renderSentence() {
     $('existing-area').hidden = true;
   }
   clearPending();
-  hideWarn();
+  hideWarn('warn-area');
   renderTabs();
 }
 
 function renderStatus() {
   const done = Object.keys(state.recorded).length;
-  $('status-progress').textContent = `进度 ${done} / ${state.flat.length}`;
+  $('status-progress').textContent = `进度 ${done} / ${state.flat.length + Object.keys(state.recorded).filter(id => /^S\d+$/.test(id)).length}`;
   const m = Math.floor(state.totalSec / 60), sec = Math.round(state.totalSec % 60);
   $('status-duration').textContent = `已录 ${m} 分 ${sec} 秒`;
+  const p = $('status-pending');
+  p.hidden = !state.pendingSegs.length;
+  p.textContent = `待校对 ${state.pendingSegs.length} 段`;
 }
 
-function showWarn(msg) { const w = $('warn-area'); w.textContent = msg; w.hidden = false; }
-function hideWarn() { $('warn-area').hidden = true; }
+function renderPending() {
+  const list = $('pending-list');
+  $('pending-section').hidden = !state.pendingSegs.length;
+  list.innerHTML = '';
+  for (const seg of state.pendingSegs) {
+    const item = document.createElement('div');
+    item.className = 'pending-item';
+    item.innerHTML = `
+      <div class="pending-head">
+        <span class="sid">${seg.id}</span>
+        <span class="pending-dur">${Number(seg.dur).toFixed(1)}s · ${seg.take || ''}</span>
+      </div>
+      <audio controls src="/api/audio/${seg.id}.wav?ts=${seg.ts || 0}"></audio>
+      <textarea rows="2" placeholder="听音频，写下你实际说的字……">${seg.draft || ''}</textarea>
+      <div class="preview-btns">
+        <button class="btn-save btn-confirm">✔ 确认入库</button>
+        <button class="btn-ghost btn-drop">✕ 丢弃这段</button>
+      </div>`;
+    const ta = item.querySelector('textarea');
+    item.querySelector('.btn-confirm').onclick = () => confirmSeg(seg.id, ta.value, item);
+    item.querySelector('.btn-drop').onclick = () => discardSeg(seg.id);
+    list.appendChild(item);
+  }
+}
+
+function showWarn(id, msg) { const w = $(id); w.textContent = msg; w.hidden = false; }
+function hideWarn(id) { $(id).hidden = true; }
 
 function clearPending() {
   state.pending = null;
@@ -99,12 +153,25 @@ function clearPending() {
   if (a.src) { URL.revokeObjectURL(a.src); a.removeAttribute('src'); }
 }
 
-/* ---------------- 录音 ---------------- */
+function clearFreeTake() {
+  state.freeTake = null;
+  $('free-preview').hidden = true;
+  const a = $('free-audio');
+  if (a.src) { URL.revokeObjectURL(a.src); a.removeAttribute('src'); }
+}
+
+/* ---------------- 录音引擎（双模式共用） ---------------- */
+
+function ui() {
+  return state.mode === 'read'
+    ? { btn: $('btn-record'), timer: $('timer'), level: $('level-bar'), warn: 'warn-area', startLabel: '● 开始录音', stopLabel: '■ 停止录音' }
+    : { btn: $('free-record'), timer: $('free-timer'), level: $('free-level'), warn: 'free-warn', startLabel: '● 开始说话', stopLabel: '■ 停止' };
+}
 
 async function startRecording() {
   if (state.recording) return;
-  clearPending();
-  hideWarn();
+  if (state.mode === 'read') clearPending(); else clearFreeTake();
+  hideWarn(ui().warn);
   try {
     const deviceId = localStorage.getItem('vc_device') || '';
     // 关闭回声消除/降噪/自动增益：训练数据要尽量保留原始音色
@@ -118,7 +185,7 @@ async function startRecording() {
     state.stream = await navigator.mediaDevices.getUserMedia(constraints);
     populateDevices();
   } catch (e) {
-    showWarn('无法访问麦克风：' + e.message + '。请检查浏览器权限，并确认通过 http://127.0.0.1 访问。');
+    showWarn(ui().warn, '无法访问麦克风：' + e.message + '。请检查浏览器权限，并确认通过 http://127.0.0.1 访问。');
     return;
   }
 
@@ -129,6 +196,7 @@ async function startRecording() {
   state.chunks = [];
   state.peak = 0;
 
+  const levelEl = ui().level;
   state.processor.onaudioprocess = ev => {
     const data = ev.inputBuffer.getChannelData(0);
     state.chunks.push(new Float32Array(data));
@@ -139,7 +207,7 @@ async function startRecording() {
       rms += data[i] * data[i];
     }
     rms = Math.sqrt(rms / data.length);
-    $('level-bar').style.width = Math.min(100, rms * 350) + '%';
+    levelEl.style.width = Math.min(100, rms * 350) + '%';
   };
 
   // processor 需要接到 destination 才会持续触发；用 0 增益避免把麦克风声放出来
@@ -151,11 +219,13 @@ async function startRecording() {
 
   state.recording = true;
   state.startTime = performance.now();
-  const btn = $('btn-record');
-  btn.textContent = '■ 停止录音';
-  btn.classList.add('recording');
+  const u = ui();
+  u.btn.textContent = u.stopLabel;
+  u.btn.classList.add('recording');
   state.timerId = setInterval(() => {
-    $('timer').textContent = ((performance.now() - state.startTime) / 1000).toFixed(1) + 's';
+    const sec = (performance.now() - state.startTime) / 1000;
+    u.timer.textContent = sec.toFixed(1) + 's';
+    if (state.mode === 'free' && sec >= FREE_MAX_SEC) stopRecording();
   }, 100);
 }
 
@@ -170,13 +240,13 @@ function stopRecording() {
     state.ctx.close();
   } catch (e) { /* 忽略清理错误 */ }
 
-  const btn = $('btn-record');
-  btn.textContent = '● 开始录音';
-  btn.classList.remove('recording');
-  $('level-bar').style.width = '0%';
+  const u = ui();
+  u.btn.textContent = u.startLabel;
+  u.btn.classList.remove('recording');
+  u.level.style.width = '0%';
 
   const total = state.chunks.reduce((n, c) => n + c.length, 0);
-  if (!total) { showWarn('没有采集到音频数据，请重试。'); return; }
+  if (!total) { showWarn(u.warn, '没有采集到音频数据，请重试。'); return; }
   let pcm = new Float32Array(total);
   let off = 0;
   for (const c of state.chunks) { pcm.set(c, off); off += c.length; }
@@ -184,17 +254,25 @@ function stopRecording() {
 
   pcm = trimSilence(pcm, state.sampleRate);
   const dur = pcm.length / state.sampleRate;
-  if (dur < 0.6) { showWarn('录音太短（不足 0.6 秒），请重录。'); return; }
+  const minDur = state.mode === 'read' ? 0.6 : 2.0;
+  if (dur < minDur) { showWarn(u.warn, `录音太短（不足 ${minDur} 秒），请重试。`); return; }
 
   const blob = encodeWav(pcm, state.sampleRate);
-  state.pending = { blob, dur, peak: state.peak, sr: state.sampleRate };
-  const a = $('preview-audio');
-  a.src = URL.createObjectURL(blob);
-  $('preview-area').hidden = false;
-  $('timer').textContent = dur.toFixed(1) + 's';
+  const take = { blob, dur, peak: state.peak, sr: state.sampleRate };
+  u.timer.textContent = dur.toFixed(1) + 's';
 
-  if (state.peak >= 0.985) showWarn('⚠ 音量过大出现削波（爆音），建议离麦克风远一点后重录。');
-  else if (state.peak < 0.08) showWarn('⚠ 音量偏小，建议靠近麦克风或调大输入音量后重录。');
+  if (state.mode === 'read') {
+    state.pending = take;
+    $('preview-audio').src = URL.createObjectURL(blob);
+    $('preview-area').hidden = false;
+  } else {
+    state.freeTake = take;
+    $('free-audio').src = URL.createObjectURL(blob);
+    $('free-preview').hidden = false;
+  }
+
+  if (state.peak >= 0.985) showWarn(u.warn, '⚠ 音量过大出现削波（爆音），建议离麦克风远一点后重录。');
+  else if (state.peak < 0.08) showWarn(u.warn, '⚠ 音量偏小，建议靠近麦克风或调大输入音量后重录。');
 }
 
 /* 掐掉首尾静音，保留 0.25s 余量 */
@@ -229,7 +307,7 @@ function encodeWav(pcm, sr) {
   return new Blob([buf], { type: 'audio/wav' });
 }
 
-/* ---------------- 保存与导航 ---------------- */
+/* ---------------- 朗读模式：保存与导航 ---------------- */
 
 async function save() {
   if (!state.pending || state.saving) return;
@@ -249,9 +327,9 @@ async function save() {
     const next = state.flat.findIndex((x, i) => i > state.index && !state.recorded[x.id]);
     const anyNew = next !== -1 ? next : state.flat.findIndex(x => !state.recorded[x.id]);
     if (anyNew !== -1) goTo(anyNew);
-    else { renderSentence(); showWarn('🎉 全部录完了！现在可以运行 python3 scripts/export_dataset.py 导出训练集。'); }
+    else { renderSentence(); showWarn('warn-area', '🎉 朗读语料全部录完！可以去「自由说话」补自然语气，或运行 python3 scripts/export_dataset.py 导出训练集。'); }
   } catch (e) {
-    showWarn('保存失败：' + e.message);
+    showWarn('warn-area', '保存失败：' + e.message);
   } finally {
     state.saving = false;
     $('btn-save').disabled = false;
@@ -263,6 +341,76 @@ function goTo(idx) {
   if (state.recording) stopRecording();
   state.index = idx;
   renderSentence();
+}
+
+/* ---------------- 自由模式：上传与校对 ---------------- */
+
+async function uploadFreeTake() {
+  if (!state.freeTake || state.saving) return;
+  state.saving = true;
+  const btn = $('free-upload');
+  btn.disabled = true;
+  btn.textContent = '⏳ 切分中……';
+  const p = state.freeTake;
+  try {
+    const q = `dur=${p.dur.toFixed(3)}&sr=${p.sr}&peak=${p.peak.toFixed(4)}`;
+    const resp = await fetch(`/api/save_raw?${q}`, { method: 'POST', body: p.blob });
+    const j = await resp.json();
+    if (!resp.ok) throw new Error(j.error || resp.status);
+    clearFreeTake();
+    await refreshPending();
+    showWarn('free-warn', j.segments.length
+      ? `✔ 已切出 ${j.segments.length} 段（${j.take}），请在下方逐段校对。`
+      : '这段录音没有切出有效语音（可能太安静），请重录。');
+  } catch (e) {
+    showWarn('free-warn', '上传失败：' + e.message);
+  } finally {
+    state.saving = false;
+    btn.disabled = false;
+    btn.textContent = '⬆ 上传并按停顿切分';
+  }
+}
+
+async function refreshPending() {
+  const j = await fetch('/api/pending').then(r => r.json());
+  state.pendingSegs = j.pending || [];
+  renderPending();
+  renderStatus();
+  renderTabs();
+}
+
+async function confirmSeg(id, text, itemEl) {
+  text = (text || '').trim();
+  if (!text) {
+    itemEl.querySelector('textarea').focus();
+    showWarn('free-warn', `${id}：请先写下这段说的字，再确认入库。`);
+    return;
+  }
+  try {
+    const resp = await fetch(`/api/confirm?id=${encodeURIComponent(id)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const j = await resp.json();
+    if (!resp.ok) throw new Error(j.error || resp.status);
+    state.recorded[id] = { dur: 0, ts: Date.now() / 1000 };
+    state.totalSec = j.total_sec;
+    hideWarn('free-warn');
+    await refreshPending();
+  } catch (e) {
+    showWarn('free-warn', '确认失败：' + e.message);
+  }
+}
+
+async function discardSeg(id) {
+  try {
+    const resp = await fetch(`/api/discard?id=${encodeURIComponent(id)}`, { method: 'POST' });
+    if (!resp.ok) throw new Error((await resp.json()).error || resp.status);
+    await refreshPending();
+  } catch (e) {
+    showWarn('free-warn', '丢弃失败：' + e.message);
+  }
 }
 
 /* ---------------- 设备选择 ---------------- */
@@ -287,16 +435,27 @@ async function populateDevices() {
 
 $('btn-record').onclick = () => state.recording ? stopRecording() : startRecording();
 $('btn-save').onclick = save;
-$('btn-discard').onclick = () => { clearPending(); hideWarn(); };
+$('btn-discard').onclick = () => { clearPending(); hideWarn('warn-area'); };
 $('btn-prev').onclick = () => goTo(state.index - 1);
 $('btn-next').onclick = () => goTo(state.index + 1);
+
+$('free-record').onclick = () => state.recording ? stopRecording() : startRecording();
+$('free-upload').onclick = uploadFreeTake;
+$('free-redo').onclick = () => { clearFreeTake(); hideWarn('free-warn'); };
+
 $('device-select').onchange = e => localStorage.setItem('vc_device', e.target.value);
 
 document.addEventListener('keydown', ev => {
-  if (ev.target.tagName === 'SELECT' || ev.target.tagName === 'INPUT') return;
-  if (ev.code === 'Space') { ev.preventDefault(); $('btn-record').click(); }
-  else if (ev.code === 'Enter') { ev.preventDefault(); save(); }
-  else if (ev.code === 'KeyR') { clearPending(); hideWarn(); }
+  const tag = ev.target.tagName;
+  if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (ev.code === 'Space') {
+    ev.preventDefault();
+    (state.mode === 'read' ? $('btn-record') : $('free-record')).click();
+    return;
+  }
+  if (state.mode !== 'read') return;
+  if (ev.code === 'Enter') { ev.preventDefault(); save(); }
+  else if (ev.code === 'KeyR') { clearPending(); hideWarn('warn-area'); }
   else if (ev.code === 'ArrowLeft') goTo(state.index - 1);
   else if (ev.code === 'ArrowRight') goTo(state.index + 1);
 });
