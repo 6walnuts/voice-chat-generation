@@ -86,7 +86,8 @@ voice-chat-generation/
 │   ├── export_dataset.py    导出 + 质量体检
 │   ├── transcribe_pending.py 给待校对段做语音识别草稿（可选，faster-whisper）
 │   └── tts_client.py        调用 GPT-SoVITS API 合成语音
-└── docs/training.md         训练与合成完整教程
+├── docs/training.md         训练与合成完整教程
+└── docs/wechat-voice.md     Mac 上用你的声音发微信语音的打通指南
 ```
 
 ## 录音建议（直接影响最终效果）

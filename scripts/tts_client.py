@@ -39,6 +39,18 @@ def lookup_prompt_text(ref: Path):
     return text
 
 
+def switch_weights(host: str, kind: str, path: str):
+    """让 api_v2 加载指定的微调权重（kind: gpt / sovits）。"""
+    from urllib.parse import quote
+    url = f"http://{host}/set_{kind}_weights?weights_path={quote(str(Path(path).resolve()))}"
+    try:
+        with urllib.request.urlopen(url, timeout=120) as resp:
+            resp.read()
+        print(f"✔ 已加载 {kind} 权重：{path}")
+    except urllib.error.HTTPError as e:
+        sys.exit(f"加载 {kind} 权重失败（{e.code}）：{e.read().decode('utf-8', 'replace')}")
+
+
 def main():
     ap = argparse.ArgumentParser(description="GPT-SoVITS 合成客户端")
     ap.add_argument("text", help="要合成的中文文本")
@@ -46,7 +58,14 @@ def main():
     ap.add_argument("--prompt-text", default="", help="参考音频对应的文本（dataset 内的录音可自动查出）")
     ap.add_argument("--host", default="127.0.0.1:9880", help="GPT-SoVITS API 地址")
     ap.add_argument("--out", default="out.wav", help="输出音频路径")
+    ap.add_argument("--gpt-weights", default="", help="你微调出的 GPT 权重（*.ckpt），本次会话加载一次即可")
+    ap.add_argument("--sovits-weights", default="", help="你微调出的 SoVITS 权重（*.pth）")
     args = ap.parse_args()
+
+    if args.gpt_weights:
+        switch_weights(args.host, "gpt", args.gpt_weights)
+    if args.sovits_weights:
+        switch_weights(args.host, "sovits", args.sovits_weights)
 
     ref = Path(args.ref).resolve()
     if not ref.exists():
