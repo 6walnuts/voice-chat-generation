@@ -62,6 +62,18 @@ brew install blackhole-2ch switchaudio-osx
 (按住 Fn 或点话筒图标),播放结束后停止录音、点发送。脚本退出时自动把
 音频设备恢复原样。
 
+## 日常使用（配好之后）
+
+把权重路径写进 GPT-SoVITS 的 `GPT_SoVITS/configs/tts_infer.yaml`（custom 段的
+`t2s_weights_path` 与 `vits_weights_path` 改成你的 ckpt/pth），以后启动服务
+就自动是你的声音。之后每条语音只需：
+
+```bash
+./scripts/say.sh "喂，我在开会，晚点回你。"
+```
+
+自动合成 → 播一遍给你试听 → 回车确认 → 倒计时 5 秒（去微信按住 Fn）→ 发送。
+
 ## 常见问题
 
 - **录进去是静音?** 重启微信再试(它可能在设备切换前就占住了旧麦克风)。
