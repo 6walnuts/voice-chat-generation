@@ -50,7 +50,10 @@ def ensure_hf_endpoint():
 
 
 def load_model(name: str):
+    import os
     ensure_hf_endpoint()
+    endpoint = os.environ.get("HF_ENDPOINT", "https://huggingface.co")
+    print(f"模型下载源：{endpoint}")
     try:
         from faster_whisper import WhisperModel
     except ImportError:
@@ -60,7 +63,22 @@ def load_model(name: str):
             "（不想装也可以：直接在录音页面手写每段文字，效果一样，只是慢一点。）"
         )
     print(f"加载 whisper 模型 {name}（首次运行会自动下载）……")
-    return WhisperModel(name, device="auto", compute_type="auto")
+    try:
+        return WhisperModel(name, device="auto", compute_type="auto")
+    except Exception as e:
+        # 直连失败 → 换镜像整体重跑（HF_ENDPOINT 在库导入时固化，只能重启进程）
+        if "hf-mirror" not in endpoint and not os.path.isdir(name):
+            print(f"从 {endpoint} 下载失败（{type(e).__name__}），换镜像 hf-mirror.com 重试……")
+            os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+            os.execve(sys.executable, [sys.executable] + sys.argv, os.environ)
+        sys.exit(
+            f"模型下载失败：{type(e).__name__}: {e}\n\n"
+            "镜像也不通。可以手动下载后完全离线使用：\n"
+            "  1. 浏览器打开 https://hf-mirror.com/Systran/faster-whisper-small/tree/main\n"
+            "  2. 下载 model.bin、config.json、tokenizer.json、vocabulary.txt 到同一个文件夹\n"
+            "  3. 运行 python3 scripts/transcribe_pending.py --model /那个文件夹的路径\n"
+            "（--model 指向本地目录时不需要任何网络。）"
+        )
 
 
 def main():
