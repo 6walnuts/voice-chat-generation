@@ -1,4 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
 body {
   font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
   background: #f4f6f8;
