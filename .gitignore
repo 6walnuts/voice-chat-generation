@@ -3,3 +3,5 @@ dataset/
 out.wav
 *.pyc
 __pycache__/
+.venv/
+venv/
