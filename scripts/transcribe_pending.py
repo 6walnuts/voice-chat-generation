@@ -33,7 +33,24 @@ def read_jsonl(path: Path):
     return rows
 
 
+def ensure_hf_endpoint():
+    """huggingface.co 直连不通时自动切换国内镜像。必须在导入 faster_whisper
+    之前设置——huggingface_hub 在导入时就固化了 HF_ENDPOINT 的值。"""
+    import os
+    if os.environ.get("HF_ENDPOINT"):
+        return
+    import urllib.request
+    try:
+        req = urllib.request.Request(
+            "https://huggingface.co/api/models?limit=1", method="HEAD")
+        urllib.request.urlopen(req, timeout=4)
+    except Exception:
+        os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+        print("huggingface.co 直连不通，已自动切换镜像：HF_ENDPOINT=https://hf-mirror.com")
+
+
 def load_model(name: str):
+    ensure_hf_endpoint()
     try:
         from faster_whisper import WhisperModel
     except ImportError:
