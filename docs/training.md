@@ -17,6 +17,11 @@
 
 ## 路线一：微调 GPT-SoVITS（推荐）
 
+> **没有显卡？一键 Colab（免费 GPU）**：直接打开
+> [colab/train_gptsovits.ipynb](https://colab.research.google.com/github/6walnuts/voice-chat-generation/blob/main/colab/train_gptsovits.ipynb)
+> ——登录 Google、上传数据集 zip、「全部运行」，环境安装、底模下载全自动，
+> 训练在网页里点三下，最后自动打包模型给你下载。下面第 1、2 步都可跳过。
+
 ### 第 1 步：安装 GPT-SoVITS
 
 - **Windows（最简单）**：从官方仓库 Releases 下载「整合包」（自带全部环境，免安装），

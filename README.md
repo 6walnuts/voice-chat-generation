@@ -56,8 +56,10 @@ python3 scripts/export_dataset.py
 会做质量体检（削波/过短/音量过小逐条提醒），并生成 GPT-SoVITS
 可直接使用的标注文件 `dataset/gptsovits.list`。
 
-最后按 **[docs/training.md](docs/training.md)** 的教程微调与合成
-（需要一台带 NVIDIA 显卡的电脑或 Colab；也有不训练的零样本路线可先尝鲜）。
+最后按 **[docs/training.md](docs/training.md)** 的教程微调与合成——
+没有显卡就用
+**[一键 Colab 笔记本](https://colab.research.google.com/github/6walnuts/voice-chat-generation/blob/main/colab/train_gptsovits.ipynb)**
+（免费 GPU，上传 zip 全部运行即可）；也有不训练的零样本路线可先尝鲜。
 训练完成后可用命令行合成：
 
 ```bash
