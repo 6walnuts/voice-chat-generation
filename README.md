@@ -19,6 +19,14 @@
 
 ## 快速开始
 
+**零安装版（推荐先用这个）**：下载 [`web/index.html`](web/index.html)
+这一个文件，用 Chrome / Edge 双击打开即可——两种采集模式齐全，录音保存在
+浏览器本地（IndexedDB，关页不丢），点「导出数据集」得到完整的训练集 zip
+（wavs/ + meta.jsonl + gptsovits.list，可直接喂给 GPT-SoVITS）。
+麦克风被拦时还能改用「导入音频文件」，把手机录音 m4a/mp3 导进来处理。
+
+**完整版（Python 本地服务）**：
+
 ```bash
 git clone https://github.com/6walnuts/voice-chat-generation.git
 cd voice-chat-generation
@@ -64,7 +72,8 @@ voice-chat-generation/
 │                              A 基础发音覆盖（声母/韵母/声调/儿化/变调）
 │                              B 日常口语   C 疑问与感叹
 │                              D 数字时间   E 叙述描写   F 长句
-├── recorder/                录音采集（server.py + 网页，零依赖）
+├── web/index.html           零安装单文件版：双击即用，数据存浏览器，导出 zip
+├── recorder/                完整版录音采集（server.py + 网页，零依赖）
 ├── dataset/                 你的录音数据（自动生成，已 gitignore，注意备份！）
 │   ├── wavs/                  朗读句 <句子ID>.wav + 自由说话切段 S###.wav
 │   ├── raw/                   自由说话的原始长录音留档

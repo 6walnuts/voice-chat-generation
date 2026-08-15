@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>留声集</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎙️</text></svg>">
+<style>
+/* ---- 主题令牌：亮色为基准，暗色按同一套令牌重定义 ---- */
+:root {
+  --bg: #f6f8f7;         /* 冷调纸面，偏青灰 */
+  --surface: #ffffff;
+  --surface-2: #f0f4f2;
+  --ink: #20262b;
+  --muted: #5d6b74;
+  --faint: #8fa0a8;
+  --line: #e2e8e5;
+  --accent: #0f766e;      /* 深青，工作室的一点颜色 */
+  --accent-ink: #ffffff;
+  --rec: #e5484d;         /* 语义色：录音中 */
+  --ok: #2f8a4c;
+  --warn-bg: #fdf6e3;
+  --warn-line: #e8d49a;
+  --warn-ink: #8a6116;
+  --shadow: 0 2px 14px rgba(25, 45, 55, .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12181b;
+    --surface: #1a2226;
+    --surface-2: #212b30;
+    --ink: #e8edea;
+    --muted: #98a9b0;
+    --faint: #6b7d85;
+    --line: #2a363c;
+    --accent: #3cb8ab;
+    --accent-ink: #0c1517;
+    --rec: #f2555a;
+    --ok: #57b374;
+    --warn-bg: #2a2416;
+    --warn-line: #57481f;
+    --warn-ink: #d9b45e;
+    --shadow: 0 2px 14px rgba(0, 0, 0, .35);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12181b;
+  --surface: #1a2226;
+  --surface-2: #212b30;
+  --ink: #e8edea;
+  --muted: #98a9b0;
+  --faint: #6b7d85;
+  --line: #2a363c;
+  --accent: #3cb8ab;
+  --accent-ink: #0c1517;
+  --rec: #f2555a;
+  --ok: #57b374;
+  --warn-bg: #2a2416;
+  --warn-line: #57481f;
+  --warn-ink: #d9b45e;
+  --shadow: 0 2px 14px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.65;
+}
+button { font-family: inherit; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 26px 16px 120px; }
+
+/* ---- 头部 ---- */
+header { text-align: center; margin-bottom: 18px; }
+header h1 { font-size: 26px; letter-spacing: .06em; }
+.sub { color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+.banner {
+  margin: 12px auto 0; max-width: 560px;
+  background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink);
+  border-radius: 10px; padding: 8px 14px; font-size: 13px; text-align: left;
+}
+
+/* ---- 模式切换 ---- */
+.modes {
+  display: flex; gap: 0; margin: 16px 0 12px;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background: var(--surface);
+}
+.mode-btn {
+  flex: 1; border: none; background: transparent; color: var(--muted);
+  padding: 11px 8px; font-size: 15px; cursor: pointer;
+}
+.mode-btn.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+
+/* ---- 批次标签 ---- */
+.tabs { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+.tab {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 8px;
+  padding: 5px 11px; font-size: 12.5px; cursor: pointer; color: var(--muted);
+}
+.tab.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tab .cnt { opacity: .8; font-size: 11.5px; margin-left: 4px; }
+
+/* ---- 卡片 ---- */
+.card {
+  background: var(--surface); border-radius: 16px; padding: 22px 24px;
+  box-shadow: var(--shadow); border: 1px solid var(--line);
+}
+.meta-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sid { font-weight: 700; color: var(--accent); font-size: 13.5px; letter-spacing: .04em; }
+.done-mark { color: var(--ok); font-size: 13px; font-weight: 600; }
+.tip { color: var(--faint); font-size: 13px; margin-top: 3px; }
+/* 朗读稿：衬线、大号，像一页手稿 */
+.sentence {
+  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-size: 27px; line-height: 1.75; margin: 16px 0 18px; min-height: 2.6em;
+  text-wrap: balance;
+}
+
+.warn {
+  background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink);
+  border-radius: 9px; padding: 8px 12px; font-size: 13px; margin: 0 0 12px;
+}
+
+/* ---- 录音控件：录音键是主角 ---- */
+.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.btn-record {
+  width: 72px; height: 72px; border-radius: 50%;
+  border: none; background: var(--accent); color: var(--accent-ink);
+  font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0;
+  box-shadow: var(--shadow);
+}
+.btn-record.recording { background: var(--rec); color: #fff; animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { opacity: .72; } }
+@media (prefers-reduced-motion: reduce) { .btn-record.recording { animation: none; } }
+.timer { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 52px; font-size: 15px; }
+.level-track {
+  flex: 1; min-width: 110px; height: 10px; background: var(--surface-2);
+  border-radius: 999px; overflow: hidden;
+}
+.level-bar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent), #d3a537 72%, var(--rec));
+  transition: width .06s linear;
+}
+
+.preview { margin-top: 16px; }
+audio { width: 100%; }
+.preview-btns { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+.btn-save {
+  border: none; border-radius: 10px; padding: 10px 22px; font-size: 15px;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer; font-weight: 600;
+}
+.btn-ghost {
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px;
+  background: var(--surface); color: var(--muted); font-size: 14px; cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.existing {
+  margin-top: 16px; font-size: 13px; color: var(--muted);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.existing audio { flex: 1; min-width: 200px; }
+
+.nav-btns { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+.import-row { margin-top: 14px; font-size: 13px; color: var(--faint); }
+.import-row label { color: var(--accent); cursor: pointer; text-decoration: underline; }
+input[type="file"] { display: none; }
+
+/* ---- 待校对 ---- */
+.pending-title { font-size: 16px; margin: 24px 0 4px; }
+.pending-item {
+  border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; margin-top: 12px; background: var(--surface-2);
+}
+.pending-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.pending-dur { color: var(--faint); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.pending-item textarea {
+  width: 100%; margin-top: 8px; padding: 8px 10px; font-size: 16px;
+  font-family: inherit; line-height: 1.6; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  resize: vertical;
+}
+
+/* ---- 底部常驻：进度 + 导出 ---- */
+.dock {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+.dock-inner {
+  max-width: 720px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.dock-stats { font-size: 13.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dock-btns { display: flex; gap: 8px; }
+.btn-export {
+  border: none; border-radius: 10px; padding: 10px 18px; font-size: 14.5px;
+  background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer;
+}
+
+footer.notes { margin-top: 20px; text-align: center; }
+.hint { color: var(--faint); font-size: 12.5px; }
+.hint b { color: var(--muted); }
+.device-row { margin-bottom: 8px; font-size: 13px; color: var(--muted); }
+.device-row select {
+  max-width: 300px; padding: 4px 8px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.danger-row { margin-top: 10px; }
+.danger-link { color: var(--faint); font-size: 12px; background: none; border: none; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 480px) {
+  .card { padding: 18px 16px; }
+  .sentence { font-size: 23px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>留声集</h1>
+    <p class="sub">录下你的声音，攒成一份能训练出「你的中文语音模型」的数据集</p>
+    <div class="banner" id="env-banner" hidden></div>
+  </header>
+
+  <div class="modes">
+    <button class="mode-btn active" id="mode-read">📖 照稿朗读</button>
+    <button class="mode-btn" id="mode-free">🗣 自由说话</button>
+  </div>
+
+  <nav class="tabs" id="tabs"></nav>
+
+  <main class="card" id="read-card">
+    <div class="meta-row">
+      <span class="sid" id="sentence-id">—</span>
+      <span class="done-mark" id="done-mark" hidden></span>
+    </div>
+    <p class="tip" id="batch-tip"></p>
+    <p class="sentence" id="sentence-text">加载中……</p>
+
+    <div class="warn" id="warn-area" hidden></div>
+
+    <div class="controls">
+      <button class="btn-record" id="btn-record">录音</button>
+      <span class="timer" id="timer">0.0s</span>
+      <div class="level-track"><div class="level-bar" id="level-bar"></div></div>
+    </div>
+
+    <div class="preview" id="preview-area" hidden>
+      <audio id="preview-audio" controls></audio>
+      <div class="preview-btns">
+        <button class="btn-save" id="btn-save">✔ 保存并下一句</button>
+        <button class="btn-ghost" id="btn-redo">↺ 重录</button>
+      </div>
+    </div>
+
+    <div class="existing" id="existing-area" hidden>
+      <span>已有录音：</span>
+      <audio id="existing-audio" controls></audio>
+    </div>
+
+    <div class="import-row">麦克风用不了？<label for="import-read">导入这句的音频文件</label>（手机录音 m4a/mp3 也行）
+      <input type="file" id="import-read" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg">
+    </div>
+
+    <div class="nav-btns">
+      <button class="btn-ghost" id="btn-prev">← 上一句</button>
+      <button class="btn-ghost" id="btn-next">下一句 →</button>
+    </div>
+  </main>
+
+  <main class="card" id="free-card" hidden>
+    <div class="meta-row"><span class="sid">自由说话 · 自然语气采集</span></div>
+    <p class="tip">不看稿，像平时聊天一样随便说 1~5 分钟：今天做了什么、推荐一部电影、
+      给朋友的语音留言……停止后会按停顿自动切成小段，逐段听音频、写下你实际说的字。
+      数字按读法写汉字（「二零二六」），语气词说了就写上；说废的段丢弃即可。</p>
+
+    <div class="controls">
+      <button class="btn-record" id="free-record">说话</button>
+      <span class="timer" id="free-timer">0.0s</span>
+      <div class="level-track"><div class="level-bar" id="free-level"></div></div>
+    </div>
+
+    <div class="warn" id="free-warn" hidden></div>
+
+    <div class="preview" id="free-preview" hidden>
+      <audio id="free-audio" controls></audio>
+      <div class="preview-btns">
+        <button class="btn-save" id="free-slice">✂ 按停顿切分</button>
+        <button class="btn-ghost" id="free-redo">↺ 重录</button>
+      </div>
+    </div>
+
+    <div class="import-row">也可以<label for="import-free">导入一段已有的长录音</label>（比如手机语音备忘录）
+      <input type="file" id="import-free" accept="audio/*,.m4a,.mp3,.wav,.aac,.ogg">
+    </div>
+
+    <section id="pending-section" hidden>
+      <h2 class="pending-title">待校对</h2>
+      <div id="pending-list"></div>
+    </section>
+  </main>
+
+  <footer class="notes">
+    <div class="device-row">
+      <label for="device-select">麦克风：</label>
+      <select id="device-select"><option value="">默认设备</option></select>
+    </div>
+    <p class="hint">快捷键（朗读）：<b>空格</b> 录音/停止 · <b>回车</b> 保存下一句 · <b>R</b> 重录 · <b>←/→</b> 换句</p>
+    <p class="hint">录音只存在<b>这台设备的这个浏览器</b>里，不上传任何服务器；请定期「导出数据集」备份。</p>
+    <p class="hint">建议 Chrome / Edge 打开；安静房间，嘴离麦克风一拳远。</p>
+    <div class="danger-row"><button class="danger-link" id="btn-wipe">清空本浏览器里的全部录音数据</button></div>
+  </footer>
+</div>
+
+<div class="dock">
+  <div class="dock-inner">
+    <span class="dock-stats" id="dock-stats">0 条 · 0 分 0 秒</span>
+    <div class="dock-btns">
+      <button class="btn-export" id="btn-export">⬇ 导出数据集</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============ 留声集：单文件录音采集应用 ============
+   零依赖。录音以无损 WAV 存进浏览器 IndexedDB；导出为
+   GPT-SoVITS 可直接使用的数据集 zip（wavs/ + meta.jsonl + gptsovits.list）。 */
+
+const CORPUS = {"batches": [{"id": "A", "name": "基础发音覆盖", "desc": "覆盖普通话全部声母、常见韵母、四个声调与轻声、儿化和变调。只录这一批（约 3~5 分钟）就可以开始训练。", "tip": "用平稳自然的语速朗读，吐字清晰即可，不必刻意字正腔圆。", "items": [{"id": "A01", "text": "白马非马，这个说法你听说过吗？"}, {"id": "A02", "text": "爸爸泡了一壶普洱茶，满屋子都是茶香。"}, {"id": "A03", "text": "妹妹每天早晨都要喝一杯温牛奶。"}, {"id": "A04", "text": "风一吹，帆船就慢慢离开了码头。"}, {"id": "A05", "text": "弟弟得到一台崭新的电动玩具。"}, {"id": "A06", "text": "天太热了，我们躲在树荫下乘凉。"}, {"id": "A07", "text": "奶奶年轻的时候在南方农村教书。"}, {"id": "A08", "text": "老李在楼下练了六年太极拳。"}, {"id": "A09", "text": "哥哥刚给花园里的果树浇过水。"}, {"id": "A10", "text": "客人夸这块烤肉外焦里嫩，口感很好。"}, {"id": "A11", "text": "火车呼啸着穿过黄河大桥。"}, {"id": "A12", "text": "姐姐今天穿了一件金黄色的家居服。"}, {"id": "A13", "text": "请你去前面的桥头等我一会儿。"}, {"id": "A14", "text": "小熊想学习西方的现代绘画。"}, {"id": "A15", "text": "这张桌子的价值真不好说。"}, {"id": "A16", "text": "厨房传来一阵炒菜的声音。"}, {"id": "A17", "text": "叔叔是设计师，擅长手绘山水。"}, {"id": "A18", "text": "让我们仍然热爱日常的生活。"}, {"id": "A19", "text": "自从组建足球队，早操再没人迟到。"}, {"id": "A20", "text": "村子里错落有致地种满了松树和翠竹。"}, {"id": "A21", "text": "我们呀，一路吃喝玩乐，晚上才回家。"}, {"id": "A22", "text": "女司机举起绿旗，示意军车继续前进。"}, {"id": "A23", "text": "月亮圆圆的，挂在远处的山峰上。"}, {"id": "A24", "text": "你好，很高兴认识你，我姓李。"}, {"id": "A25", "text": "老虎和小马居然成了好伙伴。"}, {"id": "A26", "text": "一个人吃饭，一样可以吃得很开心。"}, {"id": "A27", "text": "不对，不是这本书，是那本蓝色的。"}, {"id": "A28", "text": "他呢，好像有点儿不好意思了。"}, {"id": "A29", "text": "春天一到，公园里到处是放风筝的孩子。"}, {"id": "A30", "text": "王老师用温柔而坚定的语气鼓励大家。"}]}, {"id": "B", "name": "日常口语", "desc": "高频日常用语，让模型学会你平时说话的腔调。", "tip": "想象在跟家人朋友说话，放松、口语化。", "items": [{"id": "B01", "text": "早上好！今天天气真不错。"}, {"id": "B02", "text": "麻烦你把窗户关一下，外面有点吵。"}, {"id": "B03", "text": "我先去洗个手，马上就来。"}, {"id": "B04", "text": "辛苦了，快坐下歇一会儿吧。"}, {"id": "B05", "text": "这道菜有点咸，下次少放点盐。"}, {"id": "B06", "text": "别着急，我们时间还很充裕。"}, {"id": "B07", "text": "出门记得带伞，下午可能有雨。"}, {"id": "B08", "text": "谢谢你的帮忙，改天我请你吃饭。"}, {"id": "B09", "text": "对不起，我来晚了，路上堵车堵得厉害。"}, {"id": "B10", "text": "没关系，大家都刚到，先喝点水吧。"}, {"id": "B11", "text": "你最近忙什么呢？好久没见到你了。"}, {"id": "B12", "text": "周末我们打算去郊外爬山，你来不来？"}, {"id": "B13", "text": "手机快没电了，你带充电器了吗？"}, {"id": "B14", "text": "这双鞋挺舒服的，就是颜色不太好看。"}, {"id": "B15", "text": "帮我看一下，这个字念什么？"}, {"id": "B16", "text": "电梯坏了，我们只能走楼梯上去。"}, {"id": "B17", "text": "冰箱里还有昨天剩的汤，热一热就能喝。"}, {"id": "B18", "text": "空调温度别开太低，小心着凉。"}, {"id": "B19", "text": "我把钥匙忘在办公室了，真是糊涂。"}, {"id": "B20", "text": "排队的人太多了，我们换一家店吧。"}, {"id": "B21", "text": "你先睡吧，我把这点活儿干完就休息。"}, {"id": "B22", "text": "快递到楼下了，你下去取一下好吗？"}, {"id": "B23", "text": "今晚想吃面条还是米饭？我都可以。"}, {"id": "B24", "text": "灯别关，我还要看一会儿书。"}, {"id": "B25", "text": "慢点走，地上滑，刚拖过地。"}]}, {"id": "C", "name": "疑问与感叹", "desc": "疑问句和感叹句，补充语调的上扬与强调。", "tip": "带上自然的情绪起伏：疑问上扬、感叹有力，但不要夸张。", "items": [{"id": "C01", "text": "这是谁的笔记本？封面还挺好看的。"}, {"id": "C02", "text": "你猜怎么着？我们居然在机场遇见了老同学！"}, {"id": "C03", "text": "为什么每次开会他都迟到呢？"}, {"id": "C04", "text": "哇，这里的夜景也太美了吧！"}, {"id": "C05", "text": "你确定要把头发剪这么短吗？"}, {"id": "C06", "text": "太好了，比赛我们赢了！"}, {"id": "C07", "text": "怎么办，我好像把文件发错人了。"}, {"id": "C08", "text": "难道你一点儿都不好奇吗？"}, {"id": "C09", "text": "加油！最后一圈了，坚持住！"}, {"id": "C10", "text": "这个西瓜熟不熟，你会挑吗？"}, {"id": "C11", "text": "天哪，都十二点了，我们快走吧！"}, {"id": "C12", "text": "你到底想说什么，能不能直接一点？"}, {"id": "C13", "text": "小心！前面的路结冰了。"}, {"id": "C14", "text": "真的假的？他居然会弹钢琴？"}, {"id": "C15", "text": "多漂亮的一幅画啊，是你自己画的吗？"}, {"id": "C16", "text": "咦，我的眼镜刚才还在桌上呢？"}, {"id": "C17", "text": "好香啊，厨房里炖的是什么汤？"}, {"id": "C18", "text": "你说，我们是坐高铁去，还是开车去？"}, {"id": "C19", "text": "唉，这场雨下得可真不是时候。"}, {"id": "C20", "text": "恭喜你呀，听说你考上研究生了！"}, {"id": "C21", "text": "嘘，小点儿声，孩子刚睡着。"}, {"id": "C22", "text": "啊，原来你们早就认识啊！"}, {"id": "C23", "text": "这么重要的事，你怎么现在才告诉我？"}, {"id": "C24", "text": "哎呀，我的手机怎么又死机了！"}, {"id": "C25", "text": "请问，去博物馆应该从哪个出口走？"}]}, {"id": "D", "name": "数字·时间·价格", "desc": "数字、时间、价格、电话号码，是合成时最常用也最容易出错的内容。", "tip": "数字念清楚，「一」「不」的变调顺其自然就好。", "items": [{"id": "D01", "text": "我的手机尾号是三八五二，不是三八五九。"}, {"id": "D02", "text": "会议改到下午两点半，在四楼会议室。"}, {"id": "D03", "text": "今天是二零二六年八月十日，星期一。"}, {"id": "D04", "text": "这件外套原价六百九十九元，现在打七折。"}, {"id": "D05", "text": "从我家到公司，坐地铁大概四十五分钟。"}, {"id": "D06", "text": "请拨打客服电话，四零零八一二三四五六。"}, {"id": "D07", "text": "火车十九点零七分发车，我们十八点前到站吧。"}, {"id": "D08", "text": "他今年三十二岁，比我整整大五岁。"}, {"id": "D09", "text": "这栋楼一共二十八层，我住在十六层。"}, {"id": "D10", "text": "快递单号的后四位是零六一七。"}, {"id": "D11", "text": "春节假期从除夕放到正月初七，一共八天。"}, {"id": "D12", "text": "第一名的成绩是九秒八三，打破了全国纪录。"}, {"id": "D13", "text": "这个月的工资比上个月多了一千二百块。"}, {"id": "D14", "text": "我们班五十六个人，有一半戴眼镜。"}, {"id": "D15", "text": "苹果十块钱三斤，香蕉四块五一斤。"}, {"id": "D16", "text": "电影七点一刻开场，还有二十分钟。"}, {"id": "D17", "text": "体温三十六度八，不算发烧，多喝水吧。"}, {"id": "D18", "text": "银行卡密码要设六位数字，别用生日。"}, {"id": "D19", "text": "我们的航班下午三点二十起飞，提前两小时值机。"}, {"id": "D20", "text": "房间在八零五，电梯出来右转第二间。"}, {"id": "D21", "text": "去年图书馆一共接待了一百二十万人次。"}, {"id": "D22", "text": "马拉松全程四十二点一九五公里。"}, {"id": "D23", "text": "优惠券满两百减五十，今晚十二点过期。"}, {"id": "D24", "text": "他百米能跑进十二秒，八百米也很快。"}, {"id": "D25", "text": "二的十次方是一千零二十四。"}]}, {"id": "E", "name": "叙述与描写", "desc": "叙述性句子，训练自然的停顿和节奏。", "tip": "像讲故事一样，语速可以稍慢，注意停顿。", "items": [{"id": "E01", "text": "傍晚的江面泛着金光，渔船慢慢靠岸。"}, {"id": "E02", "text": "图书馆里很安静，只听得见翻书的声音。"}, {"id": "E03", "text": "小猫蜷在阳台的藤椅上，晒着太阳打盹。"}, {"id": "E04", "text": "山路弯弯曲曲，一直伸向云雾深处。"}, {"id": "E05", "text": "雨后的空气格外清新，泥土的味道扑面而来。"}, {"id": "E06", "text": "爷爷在院子里种了两棵石榴树，年年结果。"}, {"id": "E07", "text": "集市上人来人往，叫卖声此起彼伏。"}, {"id": "E08", "text": "冬天的清晨，窗玻璃上结满了霜花。"}, {"id": "E09", "text": "列车穿过隧道，眼前忽然一片开阔。"}, {"id": "E10", "text": "她把信纸叠得整整齐齐，放进了抽屉。"}, {"id": "E11", "text": "篝火渐渐熄灭，只剩下几点红色的火星。"}, {"id": "E12", "text": "老街两旁的梧桐树，把阳光剪成了碎片。"}, {"id": "E13", "text": "面团在师傅手里翻飞，转眼变成了细面条。"}, {"id": "E14", "text": "湖水清得能看见水底的鹅卵石。"}, {"id": "E15", "text": "深秋的银杏叶落了一地，像铺了一层金毯。"}, {"id": "E16", "text": "他推开木门，一股旧书的气味迎面而来。"}, {"id": "E17", "text": "远处的雪山在夕阳下泛着淡淡的粉色。"}, {"id": "E18", "text": "广场上的鸽子扑棱棱飞起，掠过钟楼。"}, {"id": "E19", "text": "茶馆里的说书人一拍醒木，满堂安静。"}, {"id": "E20", "text": "巷子尽头的小店，卖着最地道的馄饨。"}, {"id": "E21", "text": "潮水退去，沙滩上留下一排排贝壳。"}, {"id": "E22", "text": "风筝越飞越高，最后变成了一个小黑点。"}, {"id": "E23", "text": "木匠把刨花扫成一堆，屋里满是松木香。"}, {"id": "E24", "text": "晚自习下课，操场上响起一阵阵笑声。"}, {"id": "E25", "text": "初雪落在屋檐上，整个村庄都安静了。"}]}, {"id": "F", "name": "长句朗读", "desc": "二十到三十五字的长句，帮助模型学会长句的呼吸和连贯。", "tip": "注意换气和逗号处的停顿，保持整句的连贯感。", "items": [{"id": "F01", "text": "学习一门新语言，最重要的不是天赋，而是每天坚持练习的耐心。"}, {"id": "F02", "text": "如果明天不下雨，我们就沿着河边骑车，一直骑到城外的向日葵田。"}, {"id": "F03", "text": "科技改变了我们的生活方式，但真正温暖人心的，始终是人与人之间的关怀。"}, {"id": "F04", "text": "他一边整理行李，一边回忆起这些年在外求学的点点滴滴。"}, {"id": "F05", "text": "无论遇到什么困难，只要一家人齐心协力，就没有过不去的坎儿。"}, {"id": "F06", "text": "这家老字号饭馆开了六十多年，招牌菜的味道从来没有变过。"}, {"id": "F07", "text": "读万卷书，行万里路，见识越广，人就越懂得谦虚。"}, {"id": "F08", "text": "城市的夜晚灯火通明，可他最怀念的，还是老家院子里那盏昏黄的灯。"}, {"id": "F09", "text": "健康的生活习惯，说起来简单，做起来却需要长年累月的自律。"}, {"id": "F10", "text": "会议结束以后，请大家把桌椅归位，并随手关掉投影仪和空调。"}, {"id": "F11", "text": "春种一粒粟，秋收万颗子，农民的辛苦都藏在这一粒粒粮食里。"}, {"id": "F12", "text": "面对陌生的城市，他深吸一口气，拖着行李箱走进了熙熙攘攘的人群。"}, {"id": "F13", "text": "老师常说，错题并不可怕，可怕的是错过了从错误中学习的机会。"}, {"id": "F14", "text": "这部纪录片拍了整整五年，记录了候鸟从北方到南方的漫长旅程。"}, {"id": "F15", "text": "周末的菜市场热闹非凡，讨价还价声、招呼声混成一片烟火气。"}, {"id": "F16", "text": "真正的朋友，未必天天见面，却总能在你需要的时候及时出现。"}, {"id": "F17", "text": "他把祖传的手艺教给了女儿，也把那份认真和执着一并传了下去。"}, {"id": "F18", "text": "落日把海面染成橘红色，归航的渔船拖着长长的波纹驶向码头。"}, {"id": "F19", "text": "与其抱怨天黑，不如点亮一盏灯，哪怕光亮微弱，也能照亮脚下的路。"}, {"id": "F20", "text": "岁月不居，时节如流，愿我们都能不慌不忙，把平凡的日子过得有滋有味。"}]}]};
+
+const $ = id => document.getElementById(id);
+
+/* ---------------- IndexedDB（失败则退化为内存存储） ---------------- */
+
+const store = {
+  db: null, mem: { rec: new Map(), pend: new Map() }, persistent: false,
+  async open() {
+    if (!('indexedDB' in window)) return false;
+    return new Promise(resolve => {
+      let req;
+      try { req = indexedDB.open('liushengji', 1); } catch (e) { resolve(false); return; }
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('rec')) db.createObjectStore('rec', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('pend')) db.createObjectStore('pend', { keyPath: 'id' });
+      };
+      req.onsuccess = e => { this.db = e.target.result; this.persistent = true; resolve(true); };
+      req.onerror = () => resolve(false);
+      req.onblocked = () => resolve(false);
+    });
+  },
+  _tx(name, mode, fn) {
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(name, mode);
+      const out = fn(tx.objectStore(name));
+      tx.oncomplete = () => resolve(out && out.result !== undefined ? out.result : undefined);
+      tx.onerror = () => reject(tx.error);
+    });
+  },
+  async put(name, val) {
+    if (!this.db) { this.mem[name].set(val.id, val); return; }
+    await this._tx(name, 'readwrite', s => s.put(val));
+  },
+  async del(name, id) {
+    if (!this.db) { this.mem[name].delete(id); return; }
+    await this._tx(name, 'readwrite', s => s.delete(id));
+  },
+  async all(name) {
+    if (!this.db) return [...this.mem[name].values()];
+    return new Promise((resolve, reject) => {
+      const tx = this.db.transaction(name, 'readonly');
+      const req = tx.objectStore(name).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+  },
+  async wipe() {
+    if (!this.db) { this.mem.rec.clear(); this.mem.pend.clear(); return; }
+    await this._tx('rec', 'readwrite', s => s.clear());
+    await this._tx('pend', 'readwrite', s => s.clear());
+  },
+};
+
+/* ---------------- 全局状态 ---------------- */
+
+const state = {
+  mode: 'read',
+  flat: [], batches: CORPUS.batches,
+  index: 0,
+  recorded: new Map(),   // id -> {id,text,dur,sr,peak,ts,kind,take?,wav:Blob}
+  pendingSegs: [],       // [{id,take,dur,sr,ts,draft?,wav:Blob}]
+  recording: false,
+  pendingTake: null,     // 朗读模式待保存 {blob,dur,peak,sr}
+  freeTake: null,        // 自由模式待切分 {pcm:Float32Array,sr,peak}
+  ctx: null, stream: null, source: null, processor: null,
+  chunks: [], sampleRate: 48000, startTime: 0, timerId: null, peak: 0,
+  urls: new Map(),       // id -> objectURL 缓存
+};
+const FREE_MAX_SEC = 300;
+
+/* ---------------- 初始化 ---------------- */
+
+async function init() {
+  state.flat = CORPUS.batches.flatMap(b =>
+    b.items.map(it => ({ ...it, batch: b.id, batchName: b.name, tip: b.tip })));
+
+  const ok = await store.open();
+  if (!ok) {
+    showBanner('⚠ 此浏览器无法持久保存录音（隐身模式？）。数据只存在内存里，录完请立刻导出，关页即丢。');
+  }
+  for (const r of await store.all('rec')) state.recorded.set(r.id, r);
+  state.pendingSegs = (await store.all('pend')).sort((a, b) => a.id < b.id ? -1 : 1);
+
+  if (window.self !== window.top) {
+    showBanner('ℹ 此页面在内嵌沙盒里可能无法使用麦克风或导出文件。请把它保存为本地 .html 文件后用浏览器直接打开。');
+  }
+
+  const firstNew = state.flat.findIndex(s => !state.recorded.has(s.id));
+  state.index = firstNew === -1 ? 0 : firstNew;
+  renderAll();
+}
+
+function showBanner(msg) { const b = $('env-banner'); b.textContent = msg; b.hidden = false; }
+
+function renderAll() { renderTabs(); renderSentence(); renderPending(); renderStats(); }
+
+/* ---------------- 渲染 ---------------- */
+
+function blobUrl(id, blob) {
+  if (!state.urls.has(id)) state.urls.set(id, URL.createObjectURL(blob));
+  return state.urls.get(id);
+}
+function dropUrl(id) {
+  if (state.urls.has(id)) { URL.revokeObjectURL(state.urls.get(id)); state.urls.delete(id); }
+}
+
+function renderTabs() {
+  const tabs = $('tabs');
+  tabs.innerHTML = '';
+  tabs.style.display = state.mode === 'read' ? '' : 'none';
+  const cur = state.flat[state.index];
+  for (const b of state.batches) {
+    const done = b.items.filter(it => state.recorded.has(it.id)).length;
+    const el = document.createElement('button');
+    el.className = 'tab' + (cur && cur.batch === b.id ? ' active' : '');
+    el.innerHTML = `${b.id}·${b.name}<span class="cnt">${done}/${b.items.length}</span>`;
+    el.onclick = () => {
+      const idx = state.flat.findIndex(s => s.batch === b.id && !state.recorded.has(s.id));
+      goTo(idx !== -1 ? idx : state.flat.findIndex(s => s.batch === b.id));
+    };
+    tabs.appendChild(el);
+  }
+}
+
+function setMode(mode) {
+  if (state.recording) stopRecording();
+  state.mode = mode;
+  $('mode-read').classList.toggle('active', mode === 'read');
+  $('mode-free').classList.toggle('active', mode === 'free');
+  $('read-card').hidden = mode !== 'read';
+  $('free-card').hidden = mode !== 'free';
+  renderTabs();
+}
+
+function renderSentence() {
+  const s = state.flat[state.index];
+  if (!s) return;
+  $('sentence-id').textContent = `${s.id} · ${s.batchName}（${state.index + 1}/${state.flat.length}）`;
+  $('batch-tip').textContent = s.tip || '';
+  $('sentence-text').textContent = s.text;
+
+  const rec = state.recorded.get(s.id);
+  $('done-mark').hidden = !rec;
+  if (rec) {
+    $('done-mark').textContent = `✓ 已录 ${Number(rec.dur).toFixed(1)}s（可重录覆盖）`;
+    $('existing-audio').src = blobUrl(s.id, rec.wav);
+    $('existing-area').hidden = false;
+  } else {
+    $('existing-area').hidden = true;
+  }
+  clearReadTake();
+  hideWarn('warn-area');
+  renderTabs();
+}
+
+function renderStats() {
+  let total = 0;
+  for (const r of state.recorded.values()) total += Number(r.dur) || 0;
+  const m = Math.floor(total / 60), sec = Math.round(total % 60);
+  const pend = state.pendingSegs.length ? ` · 待校对 ${state.pendingSegs.length}` : '';
+  $('dock-stats').textContent = `${state.recorded.size} 条 · ${m} 分 ${sec} 秒${pend}`;
+  $('btn-export').disabled = state.recorded.size === 0;
+}
+
+function renderPending() {
+  const list = $('pending-list');
+  $('pending-section').hidden = !state.pendingSegs.length;
+  list.innerHTML = '';
+  for (const seg of state.pendingSegs) {
+    const item = document.createElement('div');
+    item.className = 'pending-item';
+    item.innerHTML = `
+      <div class="pending-head">
+        <span class="sid">${seg.id}</span>
+        <span class="pending-dur">${Number(seg.dur).toFixed(1)}s · ${seg.take || ''}</span>
+      </div>
+      <audio controls></audio>
+      <textarea rows="2" placeholder="听音频，写下你实际说的字……"></textarea>
+      <div class="preview-btns">
+        <button class="btn-save btn-confirm">✔ 确认入库</button>
+        <button class="btn-ghost btn-drop">✕ 丢弃这段</button>
+      </div>`;
+    item.querySelector('audio').src = blobUrl(seg.id, seg.wav);
+    const ta = item.querySelector('textarea');
+    ta.value = seg.draft || '';
+    item.querySelector('.btn-confirm').onclick = () => confirmSeg(seg, ta.value, ta);
+    item.querySelector('.btn-drop').onclick = () => discardSeg(seg.id);
+    list.appendChild(item);
+  }
+}
+
+function showWarn(id, msg) { const w = $(id); w.textContent = msg; w.hidden = false; }
+function hideWarn(id) { $(id).hidden = true; }
+
+function clearReadTake() {
+  state.pendingTake = null;
+  $('preview-area').hidden = true;
+  const a = $('preview-audio');
+  if (a.dataset.url) { URL.revokeObjectURL(a.dataset.url); delete a.dataset.url; a.removeAttribute('src'); }
+}
+function clearFreeTake() {
+  state.freeTake = null;
+  $('free-preview').hidden = true;
+  const a = $('free-audio');
+  if (a.dataset.url) { URL.revokeObjectURL(a.dataset.url); delete a.dataset.url; a.removeAttribute('src'); }
+}
+
+/* ---------------- 录音引擎（双模式共用） ---------------- */
+
+function ui() {
+  return state.mode === 'read'
+    ? { btn: $('btn-record'), timer: $('timer'), level: $('level-bar'), warn: 'warn-area', startLabel: '录音', stopLabel: '停止' }
+    : { btn: $('free-record'), timer: $('free-timer'), level: $('free-level'), warn: 'free-warn', startLabel: '说话', stopLabel: '停止' };
+}
+
+async function startRecording() {
+  if (state.recording) return;
+  if (state.mode === 'read') clearReadTake(); else clearFreeTake();
+  hideWarn(ui().warn);
+  try {
+    const deviceId = localStorage.getItem('lsj_device') || '';
+    // 关闭回声消除/降噪/自动增益：训练数据要保留原始音色
+    state.stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+        channelCount: 1,
+        ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+      },
+    });
+    populateDevices();
+  } catch (e) {
+    showWarn(ui().warn, '无法使用麦克风（' + e.name + '）。可以改用下方「导入音频文件」：先用手机/电脑自带的录音应用录，再导入进来。');
+    return;
+  }
+
+  state.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  state.sampleRate = state.ctx.sampleRate;
+  state.source = state.ctx.createMediaStreamSource(state.stream);
+  state.processor = state.ctx.createScriptProcessor(4096, 1, 1);
+  state.chunks = [];
+  state.peak = 0;
+
+  const levelEl = ui().level;
+  state.processor.onaudioprocess = ev => {
+    const data = ev.inputBuffer.getChannelData(0);
+    state.chunks.push(new Float32Array(data));
+    let rms = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = Math.abs(data[i]);
+      if (v > state.peak) state.peak = v;
+      rms += data[i] * data[i];
+    }
+    levelEl.style.width = Math.min(100, Math.sqrt(rms / data.length) * 350) + '%';
+  };
+
+  // processor 要接到 destination 才会持续触发；0 增益避免回放啸叫
+  const mute = state.ctx.createGain();
+  mute.gain.value = 0;
+  state.source.connect(state.processor);
+  state.processor.connect(mute);
+  mute.connect(state.ctx.destination);
+
+  state.recording = true;
+  state.startTime = performance.now();
+  const u = ui();
+  u.btn.textContent = u.stopLabel;
+  u.btn.classList.add('recording');
+  state.timerId = setInterval(() => {
+    const sec = (performance.now() - state.startTime) / 1000;
+    u.timer.textContent = sec.toFixed(1) + 's';
+    if (state.mode === 'free' && sec >= FREE_MAX_SEC) stopRecording();
+  }, 100);
+}
+
+function stopRecording() {
+  if (!state.recording) return;
+  state.recording = false;
+  clearInterval(state.timerId);
+  try {
+    state.processor.disconnect();
+    state.source.disconnect();
+    state.stream.getTracks().forEach(t => t.stop());
+    state.ctx.close();
+  } catch (e) { /* 忽略清理错误 */ }
+
+  const u = ui();
+  u.btn.textContent = u.startLabel;
+  u.btn.classList.remove('recording');
+  u.level.style.width = '0%';
+
+  const total = state.chunks.reduce((n, c) => n + c.length, 0);
+  if (!total) { showWarn(u.warn, '没有采集到音频数据，请重试。'); return; }
+  let pcm = new Float32Array(total);
+  let off = 0;
+  for (const c of state.chunks) { pcm.set(c, off); off += c.length; }
+  state.chunks = [];
+  acceptAudio(pcm, state.sampleRate, state.peak);
+}
+
+/* 录音或导入的音频统一从这里进入各模式流程 */
+function acceptAudio(pcm, sr, peak) {
+  const u = ui();
+  pcm = trimSilence(pcm, sr);
+  const dur = pcm.length / sr;
+  const minDur = state.mode === 'read' ? 0.6 : 2.0;
+  if (dur < minDur) { showWarn(u.warn, `音频太短（不足 ${minDur} 秒），请重试。`); return; }
+  u.timer.textContent = dur.toFixed(1) + 's';
+
+  if (state.mode === 'read') {
+    const blob = encodeWav(pcm, sr);
+    state.pendingTake = { blob, dur, peak, sr };
+    const a = $('preview-audio');
+    a.dataset.url = URL.createObjectURL(blob);
+    a.src = a.dataset.url;
+    $('preview-area').hidden = false;
+  } else {
+    state.freeTake = { pcm, sr, peak };
+    const blob = encodeWav(pcm, sr);
+    const a = $('free-audio');
+    a.dataset.url = URL.createObjectURL(blob);
+    a.src = a.dataset.url;
+    $('free-preview').hidden = false;
+  }
+
+  if (peak >= 0.985) showWarn(u.warn, '⚠ 音量过大出现削波（爆音），建议离麦克风远一点重录。');
+  else if (peak < 0.08) showWarn(u.warn, '⚠ 音量偏小，建议靠近麦克风或调大输入音量重录。');
+}
+
+function trimSilence(pcm, sr, threshold = 0.008) {
+  let start = 0, end = pcm.length - 1;
+  while (start < pcm.length && Math.abs(pcm[start]) < threshold) start++;
+  while (end > start && Math.abs(pcm[end]) < threshold) end--;
+  if (start >= end) return pcm;
+  const pad = Math.round(sr * 0.25);
+  return pcm.slice(Math.max(0, start - pad), Math.min(pcm.length, end + pad));
+}
+
+function encodeWav(pcm, sr) {
+  const buf = new ArrayBuffer(44 + pcm.length * 2);
+  const v = new DataView(buf);
+  const wstr = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  wstr(0, 'RIFF'); v.setUint32(4, 36 + pcm.length * 2, true); wstr(8, 'WAVE');
+  wstr(12, 'fmt '); v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true);
+  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  wstr(36, 'data'); v.setUint32(40, pcm.length * 2, true);
+  for (let i = 0; i < pcm.length; i++) {
+    const s = Math.max(-1, Math.min(1, pcm[i]));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+/* ---------------- 导入音频文件 ---------------- */
+
+async function importFile(file) {
+  const u = ui();
+  hideWarn(u.warn);
+  try {
+    const buf = await file.arrayBuffer();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const audio = await ctx.decodeAudioData(buf);
+    const pcm = audio.getChannelData(0).slice();
+    let peak = 0;
+    for (let i = 0; i < pcm.length; i++) { const v = Math.abs(pcm[i]); if (v > peak) peak = v; }
+    ctx.close();
+    acceptAudio(pcm, audio.sampleRate, peak);
+  } catch (e) {
+    showWarn(u.warn, '无法解码这个音频文件：' + (e.message || e.name || e));
+  }
+}
+
+/* ---------------- 朗读：保存与导航 ---------------- */
+
+async function saveRead() {
+  if (!state.pendingTake) return;
+  const s = state.flat[state.index];
+  const p = state.pendingTake;
+  const rec = {
+    id: s.id, text: s.text, dur: Math.round(p.dur * 1000) / 1000,
+    sr: p.sr, peak: Math.round(p.peak * 10000) / 10000,
+    ts: Math.floor(Date.now() / 1000), kind: 'read', wav: p.blob,
+  };
+  try {
+    await store.put('rec', rec);
+  } catch (e) {
+    showWarn('warn-area', '保存失败（存储空间满？）：' + (e.message || e.name)); return;
+  }
+  dropUrl(s.id);
+  state.recorded.set(s.id, rec);
+  renderStats();
+  clearReadTake();
+  const next = state.flat.findIndex((x, i) => i > state.index && !state.recorded.has(x.id));
+  const anyNew = next !== -1 ? next : state.flat.findIndex(x => !state.recorded.has(x.id));
+  if (anyNew !== -1) goTo(anyNew);
+  else { renderSentence(); showWarn('warn-area', '🎉 朗读语料全部录完！可以去「自由说话」补自然语气，或点下方「导出数据集」。'); }
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= state.flat.length) return;
+  if (state.recording) stopRecording();
+  state.index = idx;
+  renderSentence();
+}
+
+/* ---------------- 自由说话：切分与校对 ---------------- */
+
+function nextSegNo() {
+  let n = 0;
+  const scan = id => { const m = /^S(\d+)$/.exec(id); if (m) n = Math.max(n, parseInt(m[1], 10)); };
+  for (const id of state.recorded.keys()) scan(id);
+  for (const seg of state.pendingSegs) scan(seg.id);
+  return n + 1;
+}
+function nextTakeNo() {
+  let n = 0;
+  const scan = t => { const m = /^take_(\d+)$/.exec(t || ''); if (m) n = Math.max(n, parseInt(m[1], 10)); };
+  for (const r of state.recorded.values()) scan(r.take);
+  for (const seg of state.pendingSegs) scan(seg.take);
+  return n + 1;
+}
+
+/* 与仓库 recorder/server.py 同一套能量门限切分算法 */
+function sliceBySilence(pcm, sr, minSeg = 1.2, maxSeg = 9.5, minSil = 0.35, pad = 0.15) {
+  const win = Math.max(1, Math.round(sr * 0.05));
+  const nwin = Math.floor(pcm.length / win);
+  if (!nwin) return [];
+  const peaks = new Array(nwin);
+  for (let i = 0; i < nwin; i++) {
+    let p = 0;
+    const base = i * win;
+    for (let j = 0; j < win; j++) { const v = Math.abs(pcm[base + j]); if (v > p) p = v; }
+    peaks[i] = p;
+  }
+  const ranked = [...peaks].sort((a, b) => a - b);
+  const floor = ranked[Math.floor(nwin * 0.1)];
+  const p90 = ranked[Math.min(nwin - 1, Math.floor(nwin * 0.9))];
+  // 门限=噪声底×2.5，上限=信号90分位的一半（防止连续语音被整段判为静音）
+  const thr = Math.max(Math.min(Math.max(floor * 2.5, 0.006), 0.5 * p90), 0.006);
+  const voiced = peaks.map(p => p > thr);
+
+  const gapWin = Math.max(1, Math.round(minSil / 0.05));
+  let i = 0;
+  while (i < nwin) {
+    if (voiced[i]) { i++; continue; }
+    let j = i;
+    while (j < nwin && !voiced[j]) j++;
+    if (i > 0 && j < nwin && (j - i) < gapWin) for (let k = i; k < j; k++) voiced[k] = true;
+    i = j;
+  }
+
+  const intervals = [];
+  i = 0;
+  while (i < nwin) {
+    if (voiced[i]) {
+      let j = i;
+      while (j < nwin && voiced[j]) j++;
+      if ((j - i) * 0.05 >= 0.3) intervals.push([i * 0.05, j * 0.05]);
+      i = j;
+    } else i++;
+  }
+
+  const groups = [];
+  let cur = null;
+  for (const [a, b] of intervals) {
+    if (b - a > maxSeg) {
+      if (cur) { groups.push(cur); cur = null; }
+      const parts = Math.floor((b - a) / maxSeg) + 1;
+      const step = (b - a) / parts;
+      for (let k = 0; k < parts; k++) groups.push([a + k * step, a + (k + 1) * step]);
+      continue;
+    }
+    if (!cur) cur = [a, b];
+    else if (b - cur[0] <= maxSeg) cur = [cur[0], b];
+    else { groups.push(cur); cur = [a, b]; }
+  }
+  if (cur) groups.push(cur);
+
+  const total = pcm.length / sr;
+  const out = [];
+  for (const [a, b] of groups) {
+    if (b - a < minSeg) continue;
+    out.push([Math.round(Math.max(0, a - pad) * sr), Math.round(Math.min(total, b + pad) * sr)]);
+  }
+  return out;
+}
+
+async function sliceFreeTake() {
+  if (!state.freeTake) return;
+  const { pcm, sr } = state.freeTake;
+  const spans = sliceBySilence(pcm, sr);
+  if (!spans.length) {
+    showWarn('free-warn', '这段音频没有切出有效语音（太安静或太碎），请重录/换文件。');
+    return;
+  }
+  const take = `take_${String(nextTakeNo()).padStart(3, '0')}`;
+  let no = nextSegNo();
+  for (const [a, b] of spans) {
+    const seg = {
+      id: `S${String(no++).padStart(3, '0')}`,
+      take, dur: Math.round((b - a) / sr * 1000) / 1000, sr,
+      ts: Math.floor(Date.now() / 1000),
+      wav: encodeWav(pcm.slice(a, b), sr),
+    };
+    state.pendingSegs.push(seg);
+    try { await store.put('pend', seg); } catch (e) { /* 满则至少留在内存 */ }
+  }
+  clearFreeTake();
+  renderPending();
+  renderStats();
+  showWarn('free-warn', `✔ 已切出 ${spans.length} 段（${take}），请在下方逐段校对。`);
+}
+
+async function confirmSeg(seg, text, ta) {
+  text = (text || '').trim();
+  if (!text) { ta.focus(); showWarn('free-warn', `${seg.id}：请先写下这段说的字，再确认入库。`); return; }
+  const rec = {
+    id: seg.id, text, dur: seg.dur, sr: seg.sr, peak: 0,
+    ts: Math.floor(Date.now() / 1000), kind: 'free', take: seg.take, wav: seg.wav,
+  };
+  try { await store.put('rec', rec); await store.del('pend', seg.id); }
+  catch (e) { showWarn('free-warn', '保存失败：' + (e.message || e.name)); return; }
+  state.recorded.set(seg.id, rec);
+  state.pendingSegs = state.pendingSegs.filter(x => x.id !== seg.id);
+  hideWarn('free-warn');
+  renderPending();
+  renderStats();
+}
+
+async function discardSeg(id) {
+  try { await store.del('pend', id); } catch (e) { /* 忽略 */ }
+  dropUrl(id);
+  state.pendingSegs = state.pendingSegs.filter(x => x.id !== id);
+  renderPending();
+  renderStats();
+}
+
+/* ---------------- 导出数据集（zip，仅存储不压缩） ---------------- */
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+function buildZip(files) { // files: [{name, data:Uint8Array}]
+  const enc = new TextEncoder();
+  const now = new Date();
+  const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xffff;
+  const dosDate = (((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate()) & 0xffff;
+  const chunks = [], central = [];
+  let offset = 0;
+  const u16 = n => new Uint8Array([n & 255, (n >> 8) & 255]);
+  const u32 = n => new Uint8Array([n & 255, (n >> 8) & 255, (n >> 16) & 255, (n >>> 24) & 255]);
+
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    // 本地文件头（bit11: 文件名用 UTF-8）
+    const local = [u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate),
+      u32(crc), u32(f.data.length), u32(f.data.length), u16(name.length), u16(0)];
+    const localBytes = concat([...local, name, f.data]);
+    chunks.push(localBytes);
+    central.push({ name, crc, size: f.data.length, offset });
+    offset += localBytes.length;
+  }
+  const cdChunks = [];
+  for (const c of central) {
+    cdChunks.push(concat([u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0),
+      u16(dosTime), u16(dosDate), u32(c.crc), u32(c.size), u32(c.size),
+      u16(c.name.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(c.offset), c.name]));
+  }
+  const cd = concat(cdChunks);
+  const end = concat([u32(0x06054b50), u16(0), u16(0), u16(central.length), u16(central.length),
+    u32(cd.length), u32(offset), u16(0)]);
+  return new Blob([...chunks, cd, end], { type: 'application/zip' });
+
+  function concat(arrs) {
+    const total = arrs.reduce((n, a) => n + a.length, 0);
+    const out = new Uint8Array(total);
+    let o = 0;
+    for (const a of arrs) { out.set(a, o); o += a.length; }
+    return out;
+  }
+}
+
+async function exportDataset() {
+  if (!state.recorded.size) return;
+  const btn = $('btn-export');
+  btn.disabled = true;
+  btn.textContent = '打包中……';
+  try {
+    const enc = new TextEncoder();
+    const ids = [...state.recorded.keys()].sort();
+    const files = [];
+    const metaLines = [], listLines = [];
+    for (const id of ids) {
+      const r = state.recorded.get(id);
+      files.push({ name: `wavs/${id}.wav`, data: new Uint8Array(await r.wav.arrayBuffer()) });
+      const { wav, ...meta } = r;
+      metaLines.push(JSON.stringify(meta));
+      listLines.push(`wavs/${id}.wav|me|ZH|${r.text}`);
+    }
+    files.push({ name: 'meta.jsonl', data: enc.encode(metaLines.join('\n') + '\n') });
+    files.push({ name: 'gptsovits.list', data: enc.encode(listLines.join('\n') + '\n') });
+    files.push({
+      name: '说明.txt', data: enc.encode(
+        '留声集导出的语音数据集\n\n' +
+        'wavs/           录音（16-bit 单声道 WAV；A-F 开头为朗读句，S 开头为自由说话切段）\n' +
+        'meta.jsonl      每条录音的文本与元数据\n' +
+        'gptsovits.list  GPT-SoVITS 训练标注：在其 WebUI「1A-训练集格式化」中，\n' +
+        '                文本标注文件选这个 .list，音频目录选解压后的 wavs/ 目录\n\n' +
+        '训练教程：https://github.com/6walnuts/voice-chat-generation/blob/main/docs/training.md\n' +
+        '仅用于本人或已获授权的声音。\n'),
+    });
+    const zip = buildZip(files);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/g, '').replace('T', '-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(zip);
+    a.download = `voice-dataset-${stamp}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇ 导出数据集';
+  }
+}
+
+/* ---------------- 设备与杂项 ---------------- */
+
+async function populateDevices() {
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const sel = $('device-select');
+    const saved = localStorage.getItem('lsj_device') || '';
+    sel.innerHTML = '<option value="">默认设备</option>';
+    for (const d of devs.filter(d => d.kind === 'audioinput')) {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `麦克风 ${sel.length}`;
+      if (d.deviceId === saved) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  } catch (e) { /* 未授权前拿不到设备名 */ }
+}
+
+async function wipeAll() {
+  if (!confirm('确定清空这个浏览器里的全部录音数据？此操作不可恢复（已导出的 zip 不受影响）。')) return;
+  if (!confirm('再确认一次：真的要全部删除？')) return;
+  await store.wipe();
+  for (const id of state.urls.keys()) URL.revokeObjectURL(state.urls.get(id));
+  state.urls.clear();
+  state.recorded.clear();
+  state.pendingSegs = [];
+  state.index = 0;
+  renderAll();
+}
+
+/* ---------------- 事件绑定 ---------------- */
+
+$('mode-read').onclick = () => setMode('read');
+$('mode-free').onclick = () => setMode('free');
+
+$('btn-record').onclick = () => state.recording ? stopRecording() : startRecording();
+$('btn-save').onclick = saveRead;
+$('btn-redo').onclick = () => { clearReadTake(); hideWarn('warn-area'); };
+$('btn-prev').onclick = () => goTo(state.index - 1);
+$('btn-next').onclick = () => goTo(state.index + 1);
+
+$('free-record').onclick = () => state.recording ? stopRecording() : startRecording();
+$('free-slice').onclick = sliceFreeTake;
+$('free-redo').onclick = () => { clearFreeTake(); hideWarn('free-warn'); };
+
+$('import-read').onchange = e => { if (e.target.files[0]) { importFile(e.target.files[0]); e.target.value = ''; } };
+$('import-free').onchange = e => { if (e.target.files[0]) { importFile(e.target.files[0]); e.target.value = ''; } };
+
+$('btn-export').onclick = exportDataset;
+$('btn-wipe').onclick = wipeAll;
+$('device-select').onchange = e => localStorage.setItem('lsj_device', e.target.value);
+
+document.addEventListener('keydown', ev => {
+  const tag = ev.target.tagName;
+  if (tag === 'SELECT' || tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (ev.code === 'Space') {
+    ev.preventDefault();
+    (state.mode === 'read' ? $('btn-record') : $('free-record')).click();
+    return;
+  }
+  if (state.mode !== 'read') return;
+  if (ev.code === 'Enter') { ev.preventDefault(); saveRead(); }
+  else if (ev.code === 'KeyR') { clearReadTake(); hideWarn('warn-area'); }
+  else if (ev.code === 'ArrowLeft') goTo(state.index - 1);
+  else if (ev.code === 'ArrowRight') goTo(state.index + 1);
+});
+
+window.addEventListener('beforeunload', ev => {
+  if (!store.persistent && state.recorded.size) { ev.preventDefault(); ev.returnValue = ''; }
+});
+
+populateDevices();
+init();
+</script>
+</body>
+</html>
